@@ -1,0 +1,9 @@
+logging:
+  level:
+    reactor:
+      netty:
+        http: trace
+client:
+  rest:
+    beer-client:
+      base-url: http://api.springframework.guru

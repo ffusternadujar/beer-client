@@ -3,15 +3,18 @@ package com.ffuster.beerclient.webclient;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.ffuster.beerclient.model.BeerDTO;
 import com.ffuster.beerclient.model.BeerPagedListDTO;
 import java.math.BigDecimal;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
 
 @SpringBootTest
@@ -104,6 +107,28 @@ class BeerClientAdapterImplTest {
   }
 
   @Test
+  void deleteBeerNotFound() {
+    Mono<ResponseEntity<Void>> responseEntityMono =  beerClientAdapter.deleteBeer(UUID.randomUUID());
+    ResponseEntity<Void> responseEntity = responseEntityMono.onErrorResume(throwable -> {
+      if(throwable instanceof WebClientResponseException) {
+        WebClientResponseException exception = (WebClientResponseException) throwable;
+        return Mono.just(ResponseEntity.status(exception.getStatusCode()).build());
+      } else {
+        throw new RuntimeException(throwable);
+      }
+    }).block();
+    assertEquals(HttpStatus.NOT_FOUND, responseEntity.getStatusCode());
+
+  }
+
+  @Test
+  void testDeleteBeerHnadleException() {
+    Mono<ResponseEntity<Void>> responseEntityMono =  beerClientAdapter.deleteBeer(UUID.randomUUID());
+    assertThrows(WebClientResponseException.NotFound.class, () -> responseEntityMono.block());
+
+  }
+
+  @Test
   void deleteBeer() {
     Mono<BeerPagedListDTO> beerPagedListDTOMono = beerClientAdapter.listBeers(null, null, null, null, null);
     BeerPagedListDTO beerPagedListDTO = beerPagedListDTOMono.block();
@@ -114,7 +139,6 @@ class BeerClientAdapterImplTest {
 
     assertEquals(HttpStatus.NO_CONTENT, responseEntity.getStatusCode());
   }
-
   @Test
   void getBeerByUPC() {
     Mono<BeerPagedListDTO> beerPagedListDTOMono = beerClientAdapter.listBeers(null, null, null, null, null);

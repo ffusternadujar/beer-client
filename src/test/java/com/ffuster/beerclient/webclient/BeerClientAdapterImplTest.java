@@ -9,6 +9,8 @@ import com.ffuster.beerclient.model.BeerDTO;
 import com.ffuster.beerclient.model.BeerPagedListDTO;
 import java.math.BigDecimal;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -68,6 +70,25 @@ class BeerClientAdapterImplTest {
     assertEquals(beer.getBeerStyle(), beerDTO.getBeerStyle());
     assertEquals(beer.getUpc(), beerDTO.getUpc());
     assertEquals(beer.getPrice(), beerDTO.getPrice());
+  }
+
+  @Test
+  void testGetBeerOK(){
+    //Given
+    CountDownLatch countDownLatch = new CountDownLatch(1);
+    AtomicReference<BeerDTO> beerDTOAtomicReference = new AtomicReference<>();
+
+    //When
+    beerClientAdapter.listBeers(null, null, null, null, null)
+        .map(beerPagedList -> beerPagedList.getContent().get(0).getId())
+        .flatMap(beerId -> beerClientAdapter.getBeer(beerId, false))
+        .subscribe(beerDTO -> {
+          beerDTOAtomicReference.set(beerDTO);
+          countDownLatch.countDown();
+        });
+
+    //Then
+    assertNotNull(beerDTOAtomicReference);
   }
 
   @Test
